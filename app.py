@@ -9,6 +9,9 @@ from selenium.webdriver.chrome.service import Service
 import time
 from bs4 import BeautifulSoup
 
+from scrapper import *
+
+
 # ------------- Settings for Pages -----------
 st.set_page_config(layout="wide")
 
@@ -36,31 +39,24 @@ def get_website_content(url):
         if driver is not None: driver.quit()
     return None
 
-## Click transcriptDNA taking to full info page
-def clickTranscriptDNA(url):
+# Step 1: Given the BLAST's URL for a resulting gene,
+#         click the transcriptDNA and take to gene's full
+#         infromation page.
+
+# Purpose: Interface with the driver & run the step 1 of extraction. 
+# 
+# Input:
+# - url: BLAST's outputted URL for a matched gene 
+#
+# Output:
+# - newUrl: BLAST URL's gene's full information URL 
+
+def callClickTranscriptDNA(url):
     driver = None
     try:
-        # Using on Local
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--window-size=1920,1200')
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),
-                                  options=options)
-        st.write(f"DEBUG:DRIVER:{driver}")
-        driver.get(url)
-
-        time.sleep(5)
-
-        print('Page Loaded!')
-
-        # Look for element
-        element = driver.find_element(By.XPATH, '//*[@id="track_Transcripts"]/canvas')
-        element.click()
-        return driver.current_url
-
+        return clickTranscriptDNA(driver, url)            # Defined in scrapper.py
     except Exception as e:
-        st.write(f"DEBUG:INIT_DRIVER:ERROR:{e}")
+        st.write(f"Step 1/3 (callClickTranscriptDNA): DEBUG:INIT_DRIVER:ERROR:{e}")
     finally:
         if driver is not None: driver.quit()
     return None
@@ -130,22 +126,23 @@ def getCDS(url):
 # ---------------- Page & UI/UX Components ------------------------
 def main_sidebar():
     # 1.Vertical Menu
-    st.header("Running Selenium on Streamlit Cloud")
+    st.header("Single BLAST URL GENE INFO (Name & CDS) Extraction")
     site_extraction_page()
 
 
 def site_extraction_page():
     SAMPLE_URL = "https://phytozome-next.jgi.doe.gov/jbrowse/index.html?data=genomes%2FTaestivumcv_ChineseSpring_v2_1&loc=Chr2B%3A646472438..646474664&tracks=UserBlastResults%2CTranscripts%2CAlt_Transcripts%2CPASA_assembly%2CBlastx_protein&highlight="
+    
+    # Input text field 
     url = st.text_input(label="URL", placeholder="https://example.com", value=SAMPLE_URL)
 
-    clicked = st.button("Load Page Content",type="primary")
+    # Button to begin
+    clicked = st.button("Extract from URL",type="primary")
     if clicked:
+        # Container to update & write to 
         with st.container(border=True):
             with st.spinner("Loading page website..."):
-                # content = get_website_content(url)
-                # st.write(content)
-                
-                nextUrl = clickTranscriptDNA(url)
+                nextUrl = callClickTranscriptDNA(url)
                 st.write(nextUrl)
 
                 geneName = getGeneName(nextUrl)
@@ -155,7 +152,6 @@ def site_extraction_page():
                 st.write(cdsText)
 
 
-
-
+# Starting method
 if __name__ == "__main__":
     main_sidebar()
